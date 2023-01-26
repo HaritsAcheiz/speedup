@@ -10,12 +10,16 @@ def main():
     urls = get_urls()
     start = time.time()
     [scrape_by_requests_bs4(url) for url in urls]
-    print(f'requests processing time: {time.time() - start} second(s)')
+    print(f'requests-bs4 processing time: {time.time() - start} second(s)')
+
+    start = time.time()
+    [scrape_by_httpx_selectolax(url) for url in urls]
+    print(f'httpx-selectolax processing time: {time.time() - start} second(s)')
 
     start = time.time()
     executor = ThreadPoolExecutor()
-    executor.map(scrape_by_requests_bs4(),urls)
-    print(f'concurrent requests processing time: {time.time() - start} second(s)')
+    executor.map(scrape_by_requests_bs4,urls)
+    print(f'concurrent requests-bs4 processing time: {time.time() - start} second(s)')
 
 def get_urls():
     urls = []
@@ -28,12 +32,17 @@ def scrape_by_requests_bs4(url):
     soup = BeautifulSoup(response.text, 'html.parser')
     names = soup.select("p.text-base.font-medium.text-gray-700.w-1\/2")
     for i,name in enumerate(names):
-        name = name.text.split('\n')[1].replace('\t','')
+        name = name.text.split('\n')[1].strip()
         print(f"{i}. {name}")
 
 def scrape_by_httpx_selectolax(url):
-    client = httpx.AsyncClient
-    response = client()
+    client = httpx.Client()
+    response = client.get(url)
+    tree = HTMLParser(response.text)
+    names = tree.css("p.text-base.font-medium.text-gray-700.w-1\/2")
+    for i, name in enumerate(names):
+        name = name.text.split('\n')[1].strip()
+        print(f"{i}. {name}")
 
 
 if __name__ == '__main__':
